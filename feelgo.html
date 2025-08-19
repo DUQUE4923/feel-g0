@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feel & Go — Página Única</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f4f4; --card: #ffffff; --ink: #222; --ink-soft: #6c757d;
+      --brand: #007bff; --brand-dark: #0056b3; --header: #343a40;
+      --tab: #333; --tab-active: #555; --danger: #dc3545;
+    }
+    *{ box-sizing:border-box }
+    html, body{ height:100% }
+    body{
+      font-family:'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background:var(--bg); color:var(--ink); margin:0; padding:0;
+      display:flex; flex-direction:column; min-height:100vh;
+    }
+    header{
+      background:var(--header); color:#fff; box-shadow:0 4px 6px rgba(0,0,0,.1);
+      padding:20px 16px; position:relative;
+    }
+    .header-content{ display:flex; align-items:center; justify-content:center; gap:16px }
+    .header-content img{ height:48px; width:auto }
+    .header-content h1{ margin:0; font-size:1.8rem; text-align:center }
+    #logout-btn{
+      position:absolute; right:16px; top:50%; transform:translateY(-50%);
+      padding:8px 14px; background:#f44336; color:#fff; border:0; border-radius:8px;
+      cursor:pointer; font-size:.95rem; display:none;
+    }
+    #logout-btn:hover{ background:#d32f2f }
+
+    main{ flex:1; display:flex; align-items:center; justify-content:center; padding:16px }
+    .section{ width:100%; max-width:1100px; display:none }
+    .section.active{ display:block }
+
+    .auth-wrapper{ display:flex; align-items:center; justify-content:center; width:100% }
+    .form-container{
+      width:320px; padding:30px; background:#fff; border-radius:12px;
+      box-shadow:0 8px 16px rgba(0,0,0,.15); text-align:center; transition:transform .3s;
+    }
+    .form-container:hover{ transform:translateY(-4px) }
+    .form-container h2{ margin:0 0 20px; color:#343a40; font-size:1.6rem; font-weight:600 }
+    .form-container input{
+      width:100%; padding:12px; margin:10px 0; border:1px solid #ced4da; border-radius:8px;
+      font-size:1rem; transition:border-color .3s, box-shadow .3s;
+    }
+    .form-container input:focus{ border-color:var(--brand); outline:0; box-shadow:0 0 0 .2rem rgba(0,123,255,.25) }
+    .form-container button{
+      width:100%; padding:12px; margin-top:14px; background:var(--brand); color:#fff;
+      border:0; border-radius:8px; cursor:pointer; font-size:1rem; font-weight:600; transition:background .2s;
+    }
+    .form-container button:hover{ background:var(--brand-dark) }
+    .form-container p{ margin-top:16px; font-size:.9rem; color:var(--ink-soft) }
+    .form-container a{ color:var(--brand); text-decoration:none; font-weight:600 }
+    .form-container a:hover{ text-decoration:underline }
+
+    .tab-container{ display:flex; justify-content:center; background:var(--tab); padding:10px; border-radius:8px 8px 0 0 }
+    .tab{ padding:12px 22px; color:#fff; cursor:pointer; border-radius:6px 6px 0 0; margin:0 3px; transition:background .2s }
+    .tab:hover{ background:#444 }
+    .active-tab{ background:var(--tab-active); border:1px solid var(--tab-active); border-bottom-color:#fff }
+    .tab-content{ display:none; padding:20px; background:#fff; border:1px solid #ccc; border-top:none }
+    .active-content{ display:block }
+
+    .dashboard-layout{ display:grid; gap:20px; grid-template-columns:1fr 1fr }
+    .dashboard-item{ padding:16px; border:1px solid #eee; border-radius:10px; background:#f9f9f9 }
+    .emergency-button{
+      background:var(--danger); color:#fff; border:0; padding:18px 22px; border-radius:10px; font-size:1.2rem;
+      width:100%; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,.2);
+    }
+    .emergency-button:hover{ background:#c82333 }
+
+    .proximity-semaphore{
+      display:flex; flex-direction:column; align-items:center; background:#000; padding:10px; border-radius:8px;
+      width:72px; margin:0 auto;
+    }
+    .semaphore-light{ width:34px; height:34px; border-radius:50%; background:#ccc; margin:7px 0; box-shadow:inset 0 0 5px rgba(0,0,0,.5) }
+    .semaphore-light.red{ background:red; box-shadow:0 0 10px red }
+    .semaphore-light.yellow{ background:yellow; box-shadow:0 0 10px yellow }
+    .semaphore-light.green{ background:green; box-shadow:0 0 10px green }
+
+    .gps-data p{ margin:5px 0 }
+
+    .settings-form{ max-width:700px; margin:10px auto }
+    .settings-form h3{ margin-top:24px }
+    .settings-form label{ display:block; margin-top:10px }
+    .settings-form input{ width:100%; padding:8px; margin-top:5px; border:1px solid #ccc; border-radius:6px }
+    .settings-form button{ margin-top:14px; padding:10px 14px; width:100%; border-radius:8px; border:0; background:var(--brand); color:#fff; cursor:pointer }
+
+    .history-table{ width:100%; border-collapse:collapse; margin-top:10px }
+    .history-table th, .history-table td{ border:1px solid #ddd; padding:8px; text-align:center }
+    .history-table th{ background:#333; color:#fff }
+
+    #log-output{
+      width:100%; height:360px; border:1px solid #ccc; padding:10px; font-family:Consolas, monospace;
+      white-space:pre-wrap; background:#222; color:#ddd; overflow-y:auto;
+    }
+
+    footer{ background:var(--header); color:#fff; text-align:center; padding:14px; box-shadow:0 -4px 6px rgba(0,0,0,.1) }
+
+    @media (max-width:900px){
+      .dashboard-layout{ grid-template-columns:1fr }
+      #logout-btn{ position:static; transform:none; margin-top:10px; display:none }
+      header{ padding-bottom:56px }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-content">
+      <img src="https://i.imgur.com/XWkZg6g.jpeg" alt="Logo Feel & Go" />
+      <h1>Feel & Go</h1>
+    </div>
+    <button id="logout-btn" onclick="logout()">Cerrar Sesión</button>
+  </header>
+
+  <main>
+    <section id="auth-section" class="section">
+      <div class="auth-wrapper">
+        <div id="login-container" class="form-container">
+          <h2>Iniciar sesión</h2>
+          <input type="text" id="login-username" placeholder="Nombre de usuario" autocomplete="username">
+          <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
+          <button onclick="login()">Iniciar sesión</button>
+          <p>¿No tienes una cuenta? <a href="#" onclick="showRegisterForm()">Regístrate aquí</a></p>
+        </div>
+
+        <div id="register-container" class="form-container" style="display:none;">
+          <h2>Crear cuenta</h2>
+          <input type="text" id="register-username" placeholder="Nombre de usuario" autocomplete="username">
+          <input type="password" id="register-password" placeholder="Contraseña" autocomplete="new-password">
+          <button onclick="register()">Crear cuenta</button>
+          <p>¿Ya tienes una cuenta? <a href="#" onclick="showLoginForm()">Inicia sesión aquí</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="app-section" class="section">
+      <div class="tab-container">
+        <div class="tab active-tab" onclick="showTab(0)">Dashboard</div>
+        <div class="tab" onclick="showTab(1)">Gráfica</div>
+        <div class="tab" onclick="showTab(2)">Historial</div>
+        <div class="tab" onclick="showTab(3)">Log de Eventos</div>
+        <div class="tab" onclick="showTab(4)">Ajustes</div>
+      </div>
+
+      <div id="tab-0" class="tab-content active-content">
+        <div class="dashboard-layout">
+          <div class="dashboard-column">
+            <div class="dashboard-item">
+              <p>Usuario: <strong id="user-label">—</strong></p>
+              <p>Estado: <span id="status" style="color:red;">Desconectado</span></p>
+            </div>
+            <div class="dashboard-item">
+              <p>Distancia: <span id="distance" style="font-size:24px;font-weight:bold;">— cm</span></p>
+            </div>
+            <div class="dashboard-item">
+              <p>Batería (simulada): <span id="battery" style="font-size:24px;font-weight:bold;">— %</span></p>
+            </div>
+            <div class="dashboard-item">
+              <h3>Control de Conexión</h3>
+              <input type="checkbox" id="sim-mode" checked>
+              <label for="sim-mode">Modo Simulación</label><br><br>
+              <button onclick="toggleConnection()">Aplicar Conexión</button>
+            </div>
+            <div class="dashboard-item">
+              <button class="emergency-button" onclick="emergencyAction()">BOTÓN DE EMERGENCIA</button>
+            </div>
+          </div>
+
+          <div class="dashboard-column">
+            <div class="dashboard-item" style="text-align:center;">
+              <h3>Semáforo de Proximidad</h3>
+              <div class="proximity-semaphore">
+                <div id="red-light" class="semaphore-light"></div>
+                <div id="yellow-light" class="semaphore-light"></div>
+                <div id="green-light" class="semaphore-light"></div>
+              </div>
+            </div>
+            <div class="dashboard-item">
+              <h3>Datos GPS</h3>
+              <div class="gps-data">
+                <p>Hora: <span id="gps-time">--:--:--</span></p>
+                <p>Latitud: <span id="gps-lat">N/A</span></p>
+                <p>Longitud: <span id="gps-lng">N/A</span></p>
+                <button id="map-button" onclick="viewOnMap()" disabled>Ver en Google Maps</button>
+              </div>
+            </div>
+            <div class="dashboard-item">
+              <button onclick="exportCsv()">Exportar Historial (CSV)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-1" class="tab-content">
+        <h2>Gráfica de Distancia vs. Tiempo</h2>
+        <canvas id="distanceChart"></canvas>
+      </div>
+
+      <div id="tab-2" class="tab-content">
+        <h2>Historial de Datos</h2>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Distancia (cm)</th>
+              <th>Batería (%)</th>
+              <th>Latitud</th>
+              <th>Longitud</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+        <button onclick="exportCsv()" style="margin-top:15px;">Exportar Historial (CSV)</button>
+      </div>
+
+      <div id="tab-3" class="tab-content">
+        <h2>Log de Eventos</h2>
+        <textarea id="log-output" readonly></textarea>
+      </div>
+
+      <div id="tab-4" class="tab-content">
+        <div class="settings-form">
+          <h3>Configuración de Umbrales</h3>
+          <label for="red-thresh">Umbral Rojo (&lt; cm):</label>
+          <input type="number" id="red-thresh" value="50.0">
+          <label for="yellow-thresh">Umbral Amarillo (&lt; cm):</label>
+          <input type="number" id="yellow-thresh" value="100.0">
+          <label for="batt-warn">Advertencia de Batería Baja (&lt; %):</label>
+          <input type="number" id="batt-warn" value="20.0">
+          <button onclick="saveSettings()">Guardar Umbrales</button>
+
+          <h3>Configuración ESP32</h3>
+          <label for="esp32-ip">IP del ESP32:</label>
+          <input type="text" id="esp32-ip" value="192.168.100.17">
+          <button onclick="saveSettings()">Guardar y Aplicar IP</button>
+
+          <h3>Configuración de Correo Electrónico</h3>
+          <!-- La contraseña/app pass NO se usa en el navegador -->
+          <label for="smtp-server">Servidor SMTP:</label>
+          <input type="text" id="smtp-server" value="smtp.gmail.com">
+          <label for="smtp-port">Puerto SMTP:</label>
+          <input type="number" id="smtp-port" value="587">
+          <label for="email-user">Usuario (Email):</label>
+          <input type="email" id="email-user">
+          <label for="email-pass">Contraseña/App Pass (configurar en el servidor):</label>
+          <input type="password" id="email-pass" placeholder="No se guarda en el navegador" disabled>
+          <label for="email-to">Enviar A (Email):</label>
+          <input type="email" id="email-to" placeholder="uno@correo.com, dos@correo.com">
+          <button onclick="saveEmailSettings()">Guardar Credenciales de Email</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 Feel & Go</p>
+  </footer>
+
+  <script>
+    // =========================
+    // 0) CONFIG
+    // =========================
+    const BACKEND_URL ="http://192.168.0.22:5000";
+;
+
+    // =========================
+    // 1) SESIÓN / SECCIONES
+    // =========================
+    const authSection = document.getElementById('auth-section');
+    const appSection  = document.getElementById('app-section');
+    const logoutBtn   = document.getElementById('logout-btn');
+    const userLabel   = document.getElementById('user-label');
+
+    function showAuth(){ authSection.classList.add('active'); appSection.classList.remove('active'); logoutBtn.style.display='none'; }
+    function showApp(){
+      authSection.classList.remove('active');
+      appSection.classList.add('active');
+      logoutBtn.style.display='inline-block';
+      const u = localStorage.getItem('username') || '—';
+      userLabel.textContent = u;
+
+      // Cargar settings guardados y reflejar en UI
+      loadSettingsFromStorage();
+      fillUIFromSettings();
+
+      if(!chartInitialized){ initChart(); }
+      if(!dataInterval){ toggleConnection(true); }
+    }
+
+    const credKey = (u)=>`user:${u}`;
+    function showRegisterForm(){ document.getElementById('login-container').style.display='none'; document.getElementById('register-container').style.display='block'; }
+    function showLoginForm(){ document.getElementById('register-container').style.display='none'; document.getElementById('login-container').style.display='block'; }
+
+    function login(){
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      if(!username || !password){ alert("Por favor, ingresa un nombre de usuario y una contraseña."); return; }
+      const storedNew = localStorage.getItem(credKey(username));
+      const storedOld = localStorage.getItem(username);
+      const ok = (storedNew && storedNew === password) || (storedOld && storedOld === password);
+      if(ok){ localStorage.setItem('username', username); alert(`¡Bienvenido de nuevo, ${username}!`); showApp(); }
+      else{ alert("Usuario o contraseña incorrectos."); }
+    }
+    function register(){
+      const username = document.getElementById('register-username').value.trim();
+      const password = document.getElementById('register-password').value;
+      if(!username || !password){ alert("Por favor, ingresa un nombre de usuario y una contraseña."); return; }
+      if(localStorage.getItem(credKey(username)) || localStorage.getItem(username)){ alert("El usuario ya existe."); return; }
+      localStorage.setItem(credKey(username), password);
+      localStorage.setItem(username, password);
+      alert("¡Cuenta creada con éxito!"); showLoginForm();
+    }
+    function logout(){
+      localStorage.removeItem('username');
+      alert("¡Has cerrado sesión correctamente!");
+      if(dataInterval){ clearInterval(dataInterval); dataInterval=null; isConnected=false; }
+      ui.status.textContent="Desconectado"; ui.status.style.color="red"; updateTrafficLight(-1);
+      showAuth();
+    }
+
+    // =========================
+    // 2) TABS
+    // =========================
+    function showTab(i){
+      const allTabs = document.querySelectorAll('.tab-content');
+      const allBtns = document.querySelectorAll('.tab');
+      allTabs.forEach(t=>t.classList.remove('active-content'));
+      allBtns.forEach(b=>b.classList.remove('active-tab'));
+      document.getElementById(`tab-${i}`).classList.add('active-content');
+      allBtns[i].classList.add('active-tab');
+    }
+
+    // =========================
+    // 3) ESTADO APP
+    // =========================
+    let isConnected=false, dataInterval=null, dataBuffer=[], chart=null, chartInitialized=false, startTime=null;
+    let simulatedBattery=100.0, lat=22.2575, lng=-97.8333;
+
+    const ui = {
+      status: document.getElementById('status'),
+      distance: document.getElementById('distance'),
+      battery: document.getElementById('battery'),
+      redLight: document.getElementById('red-light'),
+      yellowLight: document.getElementById('yellow-light'),
+      greenLight: document.getElementById('green-light'),
+      gpsTime: document.getElementById('gps-time'),
+      gpsLat: document.getElementById('gps-lat'),
+      gpsLng: document.getElementById('gps-lng'),
+      mapButton: document.getElementById('map-button'),
+      simMode: document.getElementById('sim-mode'),
+      historyBody: document.getElementById('history-body'),
+      logOutput: document.getElementById('log-output'),
+      esp32IpInput: document.getElementById('esp32-ip')
+    };
+
+    const settings = {
+      redThresh: 50.0, yellowThresh: 100.0, battWarn: 20.0,
+      esp32Ip: '192.168.100.17', smtpServer: 'smtp.gmail.com', smtpPort: 587,
+      emailUser: '', emailPass: '', emailTo: ''
+    };
+
+    // =========================
+    // 3.1) PERSISTENCIA settings (por usuario)
+    // =========================
+    function getSettingsKey(){
+      const u = localStorage.getItem('username') || 'default';
+      return `fg:settings:${u}`;
+    }
+    function fillUIFromSettings(){
+      document.getElementById('red-thresh').value    = settings.redThresh;
+      document.getElementById('yellow-thresh').value = settings.yellowThresh;
+      document.getElementById('batt-warn').value     = settings.battWarn;
+      document.getElementById('esp32-ip').value      = settings.esp32Ip;
+      document.getElementById('smtp-server').value   = settings.smtpServer;
+      document.getElementById('smtp-port').value     = settings.smtpPort;
+      document.getElementById('email-user').value    = settings.emailUser;
+      document.getElementById('email-to').value      = settings.emailTo;
+    }
+    function loadSettingsFromStorage(){
+      try{
+        const raw = localStorage.getItem(getSettingsKey());
+        if(!raw) return;
+        const saved = JSON.parse(raw);
+        const numericKeys = new Set(['redThresh','yellowThresh','battWarn','smtpPort']);
+        const allowed = ['redThresh','yellowThresh','battWarn','esp32Ip','smtpServer','smtpPort','emailUser','emailTo'];
+        for(const k of allowed){
+          if(saved[k] !== undefined && saved[k] !== null){
+            settings[k] = numericKeys.has(k) ? Number(saved[k]) : saved[k];
+          }
+        }
+        logEvent("Configuraciones cargadas desde almacenamiento.");
+      }catch(e){ console.error('No se pudieron cargar settings:', e); }
+    }
+    function saveSettingsToStorage(){
+      try{
+        const toSave = {
+          redThresh: settings.redThresh, yellowThresh: settings.yellowThresh, battWarn: settings.battWarn,
+          esp32Ip: settings.esp32Ip, smtpServer: settings.smtpServer, smtpPort: settings.smtpPort,
+          emailUser: settings.emailUser, emailTo: settings.emailTo
+        };
+        localStorage.setItem(getSettingsKey(), JSON.stringify(toSave));
+      }catch(e){ console.error('No se pudieron guardar settings:', e); }
+    }
+
+    // =========================
+    // 4) CONFIGURACIÓN / CONEXIÓN
+    // =========================
+    function logEvent(msg){
+      const now = new Date().toISOString().slice(0,19).replace('T',' ');
+      ui.logOutput.value += `[${now}] ${msg}\n`;
+      ui.logOutput.scrollTop = ui.logOutput.scrollHeight;
+    }
+    function saveSettings(){
+      settings.redThresh  = parseFloat(document.getElementById('red-thresh').value);
+      settings.yellowThresh = parseFloat(document.getElementById('yellow-thresh').value);
+      settings.battWarn   = parseFloat(document.getElementById('batt-warn').value);
+      settings.esp32Ip    = ui.esp32IpInput.value.trim() || settings.esp32Ip;
+      saveSettingsToStorage();
+      logEvent("Configuraciones de umbrales/IP guardadas y persistidas.");
+      alert("Configuraciones guardadas.");
+    }
+    function saveEmailSettings(){
+      settings.smtpServer = document.getElementById('smtp-server').value.trim();
+      settings.smtpPort   = parseInt(document.getElementById('smtp-port').value, 10);
+      settings.emailUser  = document.getElementById('email-user').value.trim();
+      settings.emailTo    = document.getElementById('email-to').value.trim();
+      settings.emailPass  = ""; // ¡No guardamos contraseñas en el navegador!
+      saveSettingsToStorage();
+      logEvent("Configuración de email guardada (sin contraseña) y persistida.");
+      alert("Credenciales de email guardadas.");
+    }
+    function toggleConnection(forceStart=false){
+      if(dataInterval && !forceStart){
+        clearInterval(dataInterval); dataInterval=null; isConnected=false;
+        logEvent("Conexión detenida."); ui.status.textContent="Desconectado"; ui.status.style.color="red"; updateTrafficLight(-1);
+        return;
+      }
+      isConnected=true;
+      logEvent("Conexión iniciada en modo " + (ui.simMode.checked ? "simulación" : "real") + ".");
+      ui.status.textContent="Conectado"; ui.status.style.color="green";
+      startTime = Date.now()/1000;
+      dataInterval = setInterval(simulateData, 500);
+    }
+
+    function simulateData(){
+      if(!isConnected) return;
+      const distance = Math.random()*250;
+      simulatedBattery = Math.max(0, simulatedBattery - 0.05);
+      lat += (Math.random()-0.5)*0.0002;
+      lng += (Math.random()-0.5)*0.0002;
+
+      const now = new Date();
+      const d = {
+        distance: distance.toFixed(1),
+        battery: simulatedBattery.toFixed(1),
+        time: now.toLocaleTimeString(),
+        lat: lat.toFixed(6),
+        lng: lng.toFixed(6)
+      };
+      updateDashboard(d); updateGraph(d); updateHistory(d);
+      dataBuffer.push(d);
+    }
+
+    // =========================
+    // 5) UI
+    // =========================
+    function updateDashboard(d){
+      ui.distance.textContent = `${d.distance} cm`;
+      ui.battery.textContent  = `${d.battery} %`;
+      ui.gpsTime.textContent  = d.time;
+      ui.gpsLat.textContent   = d.lat;
+      ui.gpsLng.textContent   = d.lng;
+
+      updateTrafficLight(parseFloat(d.distance));
+      ui.battery.style.color = (parseFloat(d.battery) <= settings.battWarn) ? 'red' : 'black';
+      ui.mapButton.disabled = (d.lat === "N/A" || d.lng === "N/A");
+    }
+    function updateTrafficLight(distance){
+      ui.redLight.classList.remove('red'); ui.yellowLight.classList.remove('yellow'); ui.greenLight.classList.remove('green');
+      ui.distance.style.color='black';
+      if(distance===-1 || isNaN(distance)) return;
+      if(distance < settings.redThresh){ ui.redLight.classList.add('red'); ui.distance.style.color='red'; }
+      else if(distance < settings.yellowThresh){ ui.yellowLight.classList.add('yellow'); ui.distance.style.color='orange'; }
+      else{ ui.greenLight.classList.add('green'); ui.distance.style.color='green'; }
+    }
+    function initChart(){
+      if(chartInitialized) return;
+      const ctx = document.getElementById('distanceChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type:'line',
+        data:{ labels:[], datasets:[{ label:'Distancia (cm)', data:[], borderColor:'rgb(75, 192, 192)', tension:0.1 }] },
+        options:{ scales:{ x:{ title:{ display:true, text:'Tiempo (s)'} }, y:{ title:{ display:true, text:'Distancia (cm)'}, beginAtZero:true } } }
+      });
+      chartInitialized=true;
+    }
+    function updateGraph(d){
+      if(!chartInitialized) return;
+      const elapsed = (Date.now()/1000) - startTime;
+      if(chart.data.labels.length > 50){ chart.data.labels.shift(); chart.data.datasets[0].data.shift(); }
+      chart.data.labels.push(elapsed.toFixed(1));
+      chart.data.datasets[0].data.push(d.distance);
+      chart.update();
+    }
+    function updateHistory(d){
+      const row = ui.historyBody.insertRow(0);
+      row.insertCell(0).textContent = d.time;
+      row.insertCell(1).textContent = d.distance;
+      row.insertCell(2).textContent = d.battery;
+      row.insertCell(3).textContent = d.lat;
+      row.insertCell(4).textContent = d.lng;
+      if(ui.historyBody.rows.length > 500){ ui.historyBody.deleteRow(500); }
+    }
+
+    // =========================
+    // 6) ACCIONES
+    // =========================
+    async function emergencyAction(){
+      logEvent("¡EMERGENCIA! Botón presionado.");
+      if(!confirm("¿Está seguro de que desea enviar una alerta de emergencia?")){
+        logEvent("Envío de alerta cancelado.");
+        return;
+      }
+      const toRaw = document.getElementById('email-to').value.trim();
+      if(!toRaw){ alert("Configura primero 'Enviar A (Email)' en Ajustes (puedes separar por coma)."); return; }
+
+      const subject = "FEEL & GO - Alerta de Emergencia";
+      const body =
+`Se presionó el botón de emergencia.
+Usuario: ${localStorage.getItem('username') || 'desconocido'}
+Distancia actual: ${document.getElementById('distance').textContent}
+Batería: ${document.getElementById('battery').textContent}
+GPS: ${document.getElementById('gps-lat').textContent}, ${document.getElementById('gps-lng').textContent}
+Hora: ${new Date().toLocaleString()}`;
+
+      try{
+        const resp = await fetch(`${BACKEND_URL}/api/emergency`, {
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ to: toRaw, subject, body })
+        });
+        const json = await resp.json();
+        if(json.ok){ logEvent("Correo de emergencia enviado."); alert("Correo de emergencia enviado."); }
+        else{ console.error(json); alert("No se pudo enviar el correo: " + (json.error || "Error desconocido")); logEvent("Fallo envío: " + (json.error || resp.status)); }
+      }catch(err){
+        console.error(err); alert("Error de red al enviar el correo (¿backend corriendo?)."); logEvent("Error de red al enviar correo.");
+      }
+    }
+
+    function viewOnMap(){
+      const lat = ui.gpsLat.textContent, lng = ui.gpsLng.textContent;
+      if(lat !== "N/A" && lng !== "N/A"){
+        const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        window.open(url,'_blank'); logEvent(`Abriendo Google Maps para ${lat},${lng}`);
+      }
+    }
+    function exportCsv(){
+      if(dataBuffer.length===0){ alert("No hay datos para exportar."); return; }
+      let csv = "data:text/csv;charset=utf-8," + "Hora,Distancia_cm,Batería_porcentaje,Latitud,Longitud\n";
+      dataBuffer.forEach(r=>{ csv += `${r.time},${r.distance},${r.battery},${r.lat},${r.lng}\n`; });
+      const uri = encodeURI(csv);
+      const a = document.createElement("a"); a.href = uri; a.download = "historial.csv";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      logEvent("Datos exportados a historial.csv"); alert("Datos exportados correctamente.");
+    }
+
+    // =========================
+    // 7) INIT
+    // =========================
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const logged = localStorage.getItem('username');
+      if(logged){ showApp(); } else { showAuth(); }
+      showTab(0);
+    });
+  </script>
+</body>
+</html>
